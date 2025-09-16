@@ -1,3 +1,7 @@
+[build]
+  base = "/assistantx netlify upload/"
+  publish = "/assistantx netlify upload/"
+
 [[redirects]]
   from = "/dev"
   to = "/dev.html"

@@ -1,0 +1,799 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AssistantX - Plans for Builders</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0A0A0A;
+            color: #e5e7eb;
+        }
+        .gradient-text {
+            background: linear-gradient(90deg, #a78bfa, #67e8f9);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .cta-button {
+            background: #6BA58B;
+            transition: all 0.3s ease;
+        }
+        .cta-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(107, 165, 139, 0.2);
+        }
+        .feature-card, .pricing-card, .platform-card {
+            background-color: #111111;
+            border: 1px solid #222;
+            transition: all 0.3s ease;
+        }
+        .feature-card:hover, .pricing-card:hover, .platform-card:hover {
+            transform: translateY(-5px);
+            border-color: #a78bfa;
+        }
+        .pricing-highlight {
+            border-color: #a78bfa;
+            box-shadow: 0 0 25px rgba(167, 139, 250, 0.2);
+        }
+        .hero-bg::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: radial-gradient(circle at 20% 30%, rgba(167, 139, 250, 0.08), transparent 40%),
+                             radial-gradient(circle at 80% 70%, rgba(103, 232, 249, 0.08), transparent 40%);
+            z-index: 0;
+        }
+        .chat-bg::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: radial-gradient(circle at 80% 20%, rgba(103, 232, 249, 0.06), transparent 50%),
+                             radial-gradient(circle at 20% 80%, rgba(167, 139, 250, 0.06), transparent 50%);
+            z-index: 0;
+        }
+        .chat-container {
+            background: linear-gradient(145deg, #0f0f0f, #1a1a1a);
+            border: 1px solid #333;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5), 
+                        0 0 0 1px rgba(167, 139, 250, 0.1),
+                        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+        }
+        .chat-iframe {
+            border-radius: 16px;
+            border: 1px solid #333;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        }
+        .chat-preview {
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .chat-preview:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6), 
+                        0 0 0 1px rgba(167, 139, 250, 0.2);
+        }
+        .chat-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(15, 15, 15, 0.95), rgba(26, 26, 26, 0.95));
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            backdrop-filter: blur(2px);
+            transition: all 0.4s ease;
+        }
+        .chat-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        .play-button {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(90deg, #a78bfa, #67e8f9);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(167, 139, 250, 0.3);
+        }
+        .play-button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 15px 40px rgba(167, 139, 250, 0.4);
+        }
+        .play-button svg {
+            margin-left: 4px;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in {
+            animation: fadeIn 0.8s ease-out forwards;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        .float-animation {
+            animation: float 6s ease-in-out infinite;
+        }
+        .byok-button {
+            border: 2px solid #a78bfa;
+            color: #a78bfa;
+            transition: all 0.3s ease;
+        }
+        .byok-button:hover {
+            background-color: #a78bfa;
+            color: #000;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(167, 139, 250, 0.2);
+        }
+        .glow-effect {
+            position: relative;
+            overflow: hidden;
+        }
+        .glow-effect::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(167, 139, 250, 0.1), transparent);
+            animation: shimmer 3s infinite;
+        }
+        @keyframes shimmer {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+        #chat-button {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: linear-gradient(90deg, #a78bfa, #67e8f9);
+            color: white;
+            padding: 1rem;
+            border-radius: 9999px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 64px;
+            height: 64px;
+        }
+        #chat-button:hover {
+            transform: scale(1.1);
+        }
+        #chat-button::after {
+            content: '';
+            position: absolute;
+            bottom: 100%;
+            right: 0;
+            width: 0;
+            height: 0;
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent;
+            border-bottom: 10px solid #a78bfa;
+            margin-bottom: 5px;
+            display: none;
+        }
+        #chat-button:hover::after {
+            display: block;
+        }
+        #chat-window {
+            position: fixed;
+            bottom: 5rem;
+            right: 2rem;
+            width: 500px;
+            height: 600px;
+            background-color: #111111;
+            border: 1px solid #333;
+            border-radius: 16px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            overflow: hidden;
+            display: none;
+        }
+        #chat-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        .video-embed {
+            position: relative;
+            padding-bottom: 56.25%;
+            height: 0;
+            overflow: hidden;
+        }
+        .video-embed iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        .platform-logo {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        .white-icon {
+            filter: invert(1);
+        }
+        /* Contact Form Styles */
+        #contact-form .form-control {
+            background-color: #1a1a1a;
+            border: 1px solid #333;
+            color: #e5e7eb;
+            transition: border-color 0.3s ease;
+        }
+        #contact-form .form-control:focus {
+            border-color: #a78bfa;
+            outline: none;
+        }
+        #contact-form .form-control::placeholder {
+            color: #6b7280;
+        }
+        #form-result {
+            display: none;
+            margin-top: 1rem;
+            padding: 1rem;
+            border-radius: 0.5rem;
+        }
+        #form-result.success {
+            background-color: #6BA58B;
+            color: white;
+        }
+        #form-result.error {
+            background-color: #ef4444;
+            color: white;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <header id="header" class="fixed top-0 left-0 right-0 z-50 transition-all duration-300">
+        <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <a href="https://assistantx.co.za" class="text-3xl font-bold gradient-text hover:opacity-80 transition-opacity">
+                <img src="assistantx-logo.png" alt="AssistantX Logo" class="h-8 mx-auto" />
+            </a>
+            <nav class="hidden md:flex items-center space-x-8">
+                <a href="#dev-pricing" class="text-gray-300 hover:text-white transition-colors">Pricing</a>
+                <a href="#" class="open-contact-modal text-gray-300 hover:text-white transition-colors cursor-pointer">Contact Us</a>
+            </nav>
+            <div class="hidden md:flex items-center space-x-6">
+                <a href="https://www.assistantx.chat/authentication/sign-in" class="text-gray-300 hover:text-white transition-colors font-semibold">Log In</a>
+                <a href="https://www.assistantx.chat/authentication/sign-up" class="cta-button text-white font-bold py-2 px-6 rounded-lg">Sign Up</a>
+            </div>
+            <button id="mobile-menu-button" class="md:hidden text-white">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+            </button>
+        </div>
+        <div id="mobile-menu" class="hidden md:hidden bg-black/90 backdrop-blur-sm">
+            <a href="#dev-pricing" class="block py-3 px-6 text-lg text-white hover:bg-gray-800">Pricing</a>
+            <a href="#" class="open-contact-modal block py-3 px-6 text-lg text-white hover:bg-gray-800 cursor-pointer">Contact Us</a>
+            <a href="https://www.assistantx.chat/authentication/sign-in" class="block py-3 px-6 text-lg text-white hover:bg-gray-800">Log In</a>
+            <div class="p-4">
+                <a href="https://www.assistantx.chat/authentication/sign-up" class="block text-center cta-button text-white font-bold py-3 px-6 rounded-lg text-lg">Sign Up</a>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <section class="pt-48 pb-20 text-center relative overflow-hidden hero-bg">
+            <div class="container mx-auto px-6 relative z-10">
+                <h2 class="text-4xl md:text-6xl font-extrabold text-white mb-6 leading-tight fade-in">
+                    The Smartest Way to Deploy AI. <br class="hidden md:inline"> <span class="gradient-text">On Any Website.</span>
+                </h2>
+                <p class="text-lg md:text-xl text-gray-400 max-w-3xl mx-auto mb-10 fade-in" style="animation-delay: 0.1s;">
+                    The essential plan for developers and agencies who need ultimate control, flexibility, and a streamlined workflow for client projects.
+                </p>
+                <a href="https://www.assistantx.chat/authentication/sign-up" class="cta-button text-white font-bold py-4 px-8 rounded-lg text-lg">Start Building Today</a>
+            </div>
+        </section>
+
+        <section class="py-20 relative overflow-hidden chat-bg">
+            <div class="container mx-auto px-6 relative z-10">
+                <div class="text-center mb-16">
+                    <h2 class="text-4xl md:text-5xl font-extrabold text-white mb-6 fade-in">
+                        Experience AI in Action
+                    </h2>
+                    <p class="text-lg md:text-xl text-gray-400 max-w-2xl mx-auto mb-8 fade-in" style="animation-delay: 0.1s;">
+                        See how effortlessly our AI assistant integrates with any website. Try the live demo below or click the chat bubble on the right →
+                    </p>
+                    <div class="flex justify-center space-x-4 mb-8">
+                        <div class="flex items-center space-x-2 bg-gray-900/50 px-4 py-2 rounded-full border border-gray-700">
+                            <div class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                            <span class="text-sm text-gray-300">Live Demo</span>
+                        </div>
+                        <div class="flex items-center space-x-2 bg-gray-900/50 px-4 py-2 rounded-full border border-gray-700">
+                            <div class="w-2 h-2 bg-purple-400 rounded-full"></div>
+                            <span class="text-sm text-gray-300">No Branding</span>
+                        </div>
+                        <div class="flex items-center space-x-2 bg-gray-900/50 px-4 py-2 rounded-full border border-gray-700">
+                            <div class="w-2 h-2 bg-cyan-400 rounded-full"></div>
+                            <span class="text-sm text-gray-300">Instant Setup</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="max-w-6xl mx-auto">
+                    <div class="chat-container rounded-3xl p-8 glow-effect float-animation">
+                        <div class="flex items-center justify-between mb-6">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-4 h-4 bg-red-400 rounded-full"></div>
+                                <div class="w-4 h-4 bg-yellow-400 rounded-full"></div>
+                                <div class="w-4 h-4 bg-green-400 rounded-full"></div>
+                            </div>
+                            <div class="text-gray-400 text-sm font-mono">assistantx.chat/embed</div>
+                            <div class="flex items-center space-x-2">
+                                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                                </svg>
+                                <span class="text-sm text-gray-400">Powered by AssistantX</span>
+                            </div>
+                        </div>
+                        
+                        <div class="iframe-wrapper">
+                            <iframe 
+                                class="w-full chat-iframe" 
+                                style="height: 600px; min-height: 600px" 
+                                data-src="https://www.assistantx.chat/embed?openAiAssistantId=62fc48d9a255723de305a64f3b304b89%3A14d323abefaad996f0b7424635b3cd326a48e273240deffcadb0a4a73dcf323d&openAiAssistantKey=e20309c5e92d25e6c86e40eff1e54830%3A4efa09aa297e7865d92aede48f652e6f3deab9bbfd9f4fbc9c46977616903a9e3ff8e7d529e448419e9d80e7c137a92fcda655d248071dd95c9a3aa86f11e758feb91198bdedfde2571b124b684b26834c341e3e6b588ce70271017a722ee83d65d1808c1796730c9aa4d5c0d2d4fc530f292220c37ab25c9b789ddc53d6c9b925d9f9713b6a59c320c023d04ab5d9e4e10f969b8ef1ad7c913f1b2c68c2c6be4c322c721e55df8187bbd7356e4c8c14fd74ce6be3f166f38204921f6ab724becaf7b87088cd6dd2b6a2dad03358853c7988c92337740152906ffb4a8d91a6bf50a82e54432b27a2c6350ba7c9b39060cce686383d717a65659185f7e13c96524d20ae65037058e4793ebe90c92a06b8e0db87517646e3a7c82550abb2f4a8c52cefcfb014fe0bd38b7ae8d7734f562820802c221b005bdbfc994fec7d199f753e9f9a4b4c73c5d52a4dc0b6a28ce06ae2c35e65f1335fa59e8504160ee6bdf5420e8a7dcf98df3f279fc683ae4543838fe2807fedd13c5ab646d49d2eb08a3434a8db9458183e625638e33f70cbb776&name=c97a5f9cb3b1cad7d04aab464d7c9e1b%3A6b67f26688018c5abf86f507783ea9bcc37946c31256838f0bac1158b47dada2&img=6cbaf5f2279aea932a23ccb1c0571b2b%3A6cae24e0bee10b48bd097b9b77b48c404ea91e1488099032b6f1681012e4b3965aaaa055a301a389f7621e3c56ab74ab&role=040f9670d05182e9530f39418a6ba39c%3A4ca64ebdb0f57be913705cc03ca8f25c1945630d48df0a82c6f1eeced5befa0f6e19ae6aaa152b20b8e8e1e68796a68c2bacf9e5f64d54bbf0704109eaa8398027049cac770f0e63bf304757e968a4d27dc5b81f7ecb58ae295a74486070001d"
+                                allow="clipboard-write; clipboard-read">
+                            </iframe>
+                        </div>
+                    </div>
+                    
+                    <div class="text-center mt-12">
+                        <p class="text-gray-400 mb-6">Ready to embed this on your website?</p>
+                        <a href="https://www.assistantx.chat/authentication/sign-up" class="cta-button text-white font-bold py-3 px-8 rounded-lg text-lg hover:scale-105 transition-transform">Get Your Embed Code</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="py-20 bg-black">
+            <div class="container mx-auto px-6">
+                <h2 class="text-3xl md:text-4xl font-extrabold text-center mb-12 text-white fade-in">
+                    Designed for the Modern Builder
+                </h2>
+                <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <div class="feature-card p-8 rounded-2xl">
+                        <div class="text-4xl text-cyan-400 mb-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2m-2 4l-3 3m0 0l-3-3m3 3V5" />
+                            </svg>
+                        </div>
+                        <h3 class="text-xl font-semibold mb-2 text-white">Flexible Embed</h3>
+                        <p class="text-gray-400">Embed your AI agent as an iframe or chat bubble on any website. Total control, no limitations.</p>
+                    </div>
+                    <div class="feature-card p-8 rounded-2xl">
+                        <div class="text-4xl text-cyan-400 mb-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                            </svg>
+                        </div>
+                        <h3 class="text-xl font-semibold mb-2 text-white">API Access</h3>
+                        <p class="text-gray-400">Integrate our powerful API to build custom solutions and connect to your existing apps and services.</p>
+                    </div>
+                    <div class="feature-card p-8 rounded-2xl">
+                        <div class="text-4xl text-cyan-400 mb-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.5 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.5-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                            </svg>
+                        </div>
+                        <h3 class="text-xl font-semibold mb-2 text-white">Centralized Management</h3>
+                        <p class="text-gray-400">Manage multiple client projects and AI agents from one dashboard, saving you time and effort.</p>
+                    </div>
+                    <div class="feature-card p-8 rounded-2xl">
+                        <div class="text-4xl text-cyan-400 mb-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <h3 class="text-xl font-semibold mb-2 text-white">Real-time Analytics</h3>
+                        <p class="text-gray-400">Monitor agent performance, usage, and gain insights to optimize your clients' experiences.</p>
+                    </div>
+                    <div class="feature-card p-8 rounded-2xl">
+                        <div class="text-4xl text-cyan-400 mb-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2z" />
+                            </svg>
+                        </div>
+                        <h3 class="text-xl font-semibold mb-2 text-white">Customizable Branding</h3>
+                        <p class="text-gray-400">Tailor the look and feel of each AI agent to match your clients' branding seamlessly.</p>
+                    </div>
+                    <div class="feature-card p-8 rounded-2xl">
+                        <div class="text-4xl text-cyan-400 mb-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                        </div>
+                        <h3 class="text-xl font-semibold mb-2 text-white">No-code Setup</h3>
+                        <p class="text-gray-400">Go from documents to a live agent in minutes, no coding required. Perfect for your workflow.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="py-20 bg-black">
+            <div class="container mx-auto px-6">
+                <h2 class="text-3xl md:text-4xl font-extrabold text-center mb-12 text-white fade-in">
+                    Integrates Seamlessly with Any Platform
+                </h2>
+                <div class="flex flex-wrap justify-center gap-8">
+                    <div class="platform-card p-6 rounded-2xl w-40 h-40 flex flex-col items-center justify-center">
+                        <div class="w-20 h-20 mb-4 bg-[#111111] rounded-lg flex items-center justify-center">
+                            <div class="w-16 h-16 bg-[#4353FF] rounded p-3 flex items-center justify-center">
+                                <img src="https://cdn.jsdelivr.net/npm/simple-icons@v13/icons/webflow.svg" alt="Webflow Logo" class="platform-logo white-icon">
+                            </div>
+                        </div>
+                        <p class="text-sm font-semibold text-white">Webflow</p>
+                    </div>
+                    <div class="platform-card p-6 rounded-2xl w-40 h-40 flex flex-col items-center justify-center">
+                        <div class="w-20 h-20 mb-4 bg-[#111111] rounded-lg flex items-center justify-center">
+                            <div class="w-16 h-16 bg-[#1F2A44] rounded p-3 flex items-center justify-center">
+                                <img src="https://cdn.jsdelivr.net/npm/simple-icons@v13/icons/wix.svg" alt="Wix Logo" class="platform-logo white-icon">
+                            </div>
+                        </div>
+                        <p class="text-sm font-semibold text-white">Wix</p>
+                    </div>
+                    <div class="platform-card p-6 rounded-2xl w-40 h-40 flex flex-col items-center justify-center">
+                        <div class="w-20 h-20 mb-4 bg-[#111111] rounded-lg flex items-center justify-center">
+                            <div class="w-16 h-16 bg-[#00749C] rounded p-3 flex items-center justify-center">
+                                <img src="https://cdn.jsdelivr.net/npm/simple-icons@v13/icons/wordpress.svg" alt="WordPress Logo" class="platform-logo white-icon">
+                            </div>
+                        </div>
+                        <p class="text-sm font-semibold text-white">WordPress</p>
+                    </div>
+                    <div class="platform-card p-6 rounded-2xl w-40 h-40 flex flex-col items-center justify-center">
+                        <div class="w-20 h-20 mb-4 bg-[#111111] rounded-lg flex items-center justify-center">
+                            <div class="w-16 h-16 bg-[#222222] rounded p-3 flex items-center justify-center">
+                                <img src="https://cdn.jsdelivr.net/npm/simple-icons@v13/icons/squarespace.svg" alt="Squarespace Logo" class="platform-logo white-icon">
+                            </div>
+                        </div>
+                        <p class="text-sm font-semibold text-white">Squarespace</p>
+                    </div>
+                    <div class="platform-card p-6 rounded-2xl w-40 h-40 flex flex-col items-center justify-center">
+                        <div class="w-20 h-20 mb-4 bg-[#111111] rounded-lg flex items-center justify-center">
+                            <div class="w-16 h-16 bg-[#000000] rounded p-3 flex items-center justify-center">
+                                <img src="https://cdn.jsdelivr.net/npm/simple-icons@v13/icons/codepen.svg" alt="Custom Code Logo" class="platform-logo white-icon">
+                            </div>
+                        </div>
+                        <p class="text-sm font-semibold text-white">Custom Code</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="dev-pricing" class="py-20 bg-black">
+            <div class="container mx-auto px-6 text-center">
+                <h2 class="text-4xl font-bold mb-4 text-white">Pricing for Developers & Agencies</h2>
+                <p class="text-lg text-gray-400 max-w-2xl mx-auto mb-12">Get everything you need to build and deploy professional AI agents for clients, all on your own terms.</p>
+                <div class="flex flex-wrap justify-center gap-8">
+                    <div class="pricing-card w-full max-w-sm p-8 rounded-2xl">
+                        <h3 class="text-2xl font-bold text-white mb-2">Pro + (1 Agent)</h3>
+                        <p class="text-gray-400 mb-6">Perfect for solo projects & freelancers.</p>
+                        <p class="text-5xl font-extrabold text-white mb-6">$59<span class="text-lg font-medium text-gray-400">/year</span></p>
+                        <ul class="text-left text-gray-300 mb-8">
+                            <li class="mb-2">• 1 Agent</li>
+                            <li class="mb-2">• Connect Your Own API Key</li>
+                            <li class="mb-2">• Unlimited Website Embeds</li>
+                            <li class="mb-2">• No AssistantX Branding</li>
+                        </ul>
+                        <a href="https://www.assistantx.chat/authentication/sign-up" class="cta-button text-white font-bold py-3 px-6 rounded-lg block">Start Building</a>
+                    </div>
+                    <div class="pricing-card w-full max-w-sm p-8 rounded-2xl pricing-highlight relative">
+                        <div class="absolute -top-4 left-1/2 -translate-x-1/2 bg-purple-600 text-white px-4 py-1 rounded-full text-sm font-bold">BEST VALUE</div>
+                        <h3 class="text-2xl font-bold text-white mb-2">Pro + (5 Agents)</h3>
+                        <p class="text-gray-400 mb-6">Essential for agencies & teams.</p>
+                        <p class="text-5xl font-extrabold text-white mb-6">$79<span class="text-lg font-medium text-gray-400">/year</span></p>
+                        <ul class="text-left text-gray-300 mb-8">
+                            <li class="mb-2">• 5 Agents</li>
+                            <li class="mb-2">• Connect Your Own API Key</li>
+                            <li class="mb-2">• Unlimited Website Embeds</li>
+                            <li class="mb-2">• No AssistantX Branding</li>
+                        </ul>
+                        <a href="https://www.assistantx.chat/authentication/sign-up" class="cta-button text-white font-bold py-3 px-6 rounded-lg block">Start Building</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="py-20 bg-black">
+            <div class="container mx-auto px-6">
+                <h2 class="text-3xl md:text-4xl font-extrabold text-center mb-12 text-white fade-in">
+                    Launch a Chat-Based Website Fast with AssistantX AI Engine
+                </h2>
+                <div class="grid md:grid-cols-2 gap-12">
+                    <div class="feature-card p-8 rounded-2xl">
+                        <h3 class="text-xl font-semibold mb-4 text-white text-center">See AI Career Assessment in Action!</h3>
+                        <div class="video-embed">
+                            <iframe class="w-full" src="https://www.youtube.com/embed/-8P1RbKdI4M" title="AI Career Assessment Video" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+                        </div>
+                        <p class="text-gray-400 mt-4 text-center">Powered by <span class="gradient-text">AssistantX</span></p>
+                    </div>
+                    <div class="feature-card p-8 rounded-2xl">
+                        <h3 class="text-xl font-semibold mb-4 text-white text-center">See AI Companion in Action!</h3>
+                        <div class="video-embed">
+                            <iframe class="w-full" src="https://www.youtube.com/embed/3EiBvNU3krI" title="AI Companion Video" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+                        </div>
+                        <p class="text-gray-400 mt-4 text-center">Powered by <span class="gradient-text">AssistantX</span></p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="py-8 bg-black border-t border-gray-900">
+        <div class="container mx-auto px-6 text-center">
+            <p class="text-gray-400 mb-6">Made with ❤️ in Cape Town, serving the world.</p>
+            <div class="flex justify-center space-x-6 mb-6">
+                <a href="https://www.youtube.com/@AssistantX" class="text-gray-400 hover:text-white">YouTube</a>
+                <a href="https://x.com/AssistantXHQ" class="text-gray-400 hover:text-white">X (Twitter)</a>
+                <a href="https://www.instagram.com/assistantx_official" class="text-gray-400 hover:text-white">Instagram</a>
+                <a href="https://www.facebook.com/AssistantXOfficial" class="text-gray-400 hover:text-white">Facebook</a>
+                <a href="https://www.tiktok.com/@assistantx" class="text-gray-400 hover:text-white">TikTok</a>
+            </div>
+            <div class="flex justify-center space-x-6 mb-6">
+                <a href="https://assistantx.co.za/privacy-policy" class="text-gray-400 hover:text-white">Privacy Policy</a>
+                <a href="https://assistantx.co.za/terms-of-service" class="text-gray-400 hover:text-white">Terms of Service</a>
+                <a href="#" class="open-contact-modal text-gray-400 hover:text-white cursor-pointer">Contact Us</a>
+            </div>
+            <p class="text-gray-500 text-sm">© 2025 AssistantX. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <div id="contact-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+        <div class="bg-gray-900 p-8 rounded-2xl shadow-xl border border-gray-700 w-full max-w-lg">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold text-white">Contact Us</h3>
+                <button id="close-contact-modal" class="text-gray-400 hover:text-white text-3xl">&times;</button>
+            </div>
+            <p class="text-gray-400 mb-6">Have questions or need enterprise solutions? Drop us a message, and we’ll get back to you!</p>
+            <form id="contact-form" name="contact" method="POST" data-netlify="true" data-netlify-honeypot="bot-field">
+                <input type="hidden" name="form-name" value="contact" />
+                <!-- Honeypot field for spam protection -->
+                <p class="hidden">
+                    <label>Don’t fill this out: <input name="bot-field" /></label>
+                </p>
+                <div class="mb-4">
+                    <label for="name" class="block text-gray-300 mb-2">Your Name</label>
+                    <input type="text" id="name" name="name" class="form-control w-full p-3 rounded-lg" placeholder="Enter your name" required>
+                </div>
+                <div class="mb-4">
+                    <label for="email" class="block text-gray-300 mb-2">Your Email</label>
+                    <input type="email" id="email" name="email" class="form-control w-full p-3 rounded-lg" placeholder="Enter your email" required>
+                </div>
+                <div class="mb-4">
+                    <label for="message" class="block text-gray-300 mb-2">Message</label>
+                    <textarea id="message" name="message" class="form-control w-full p-3 rounded-lg" rows="4" placeholder="Your message" required></textarea>
+                </div>
+                <button type="submit" class="cta-button text-white font-bold py-3 px-6 rounded-lg w-full">Send Message</button>
+                <div id="form-result"></div>
+            </form>
+        </div>
+    </div>
+
+    <div id="chat-button" class="group">
+        <svg class="w-8 h-8 text-white group-hover:animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+    </div>
+
+    <div id="chat-window">
+        <iframe id="chat-iframe" data-src="https://www.assistantx.chat/embed?openAiAssistantId=62fc48d9a255723de305a64f3b304b89%3A14d323abefaad996f0b7424635b3cd326a48e273240deffcadb0a4a73dcf323d&openAiAssistantKey=e20309c5e92d25e6c86e40eff1e54830%3A4efa09aa297e7865d92aede48f652e6f3deab9bbfd9f4fbc9c46977616903a9e3ff8e7d529e448419e9d80e7c137a92fcda655d248071dd95c9a3aa86f11e758feb91198bdedfde2571b124b684b26834c341e3e6b588ce70271017a722ee83d65d1808c1796730c9aa4d5c0d2d4fc530f292220c37ab25c9b789ddc53d6c9b925d9f9713b6a59c320c023d04ab5d9e4e10f969b8ef1ad7c913f1b2c68c2c6be4c322c721e55df8187bbd7356e4c8c14fd74ce6be3f166f38204921f6ab724becaf7b87088cd6dd2b6a2dad03358853c7988c92337740152906ffb4a8d91a6bf50a82e54432b27a2c6350ba7c9b39060cce686383d717a65659185f7e13c96524d20ae65037058e4793ebe90c92a06b8e0db87517646e3a7c82550abb2f4a8c52cefcfb014fe0bd38b7ae8d7734f562820802c221b005bdbfc994fec7d199f753e9f9a4b4c73c5d52a4dc0b6a28ce06ae2c35e65f1335fa59e8504160ee6bdf5420e8a7dcf98df3f279fc683ae4543838fe2807fedd13c5ab646d49d2eb08a3434a8db9458183e625638e33f70cbb776&name=c97a5f9cb3b1cad7d04aab464d7c9e1b%3A6b67f26688018c5abf86f507783ea9bcc37946c31256838f0bac1158b47dada2&img=6cbaf5f2279aea932a23ccb1c0571b2b%3A6cae24e0bee10b48bd097b9b77b48c404ea91e1488099032b6f1681012e4b3965aaaa055a301a389f7621e3c56ab74ab&role=040f9670d05182e9530f39418a6ba39c%3A4ca64ebdb0f57be913705cc03ca8f25c1945630d48df0a82c6f1eeced5befa0f6e19ae6aaa152b20b8e8e1e68796a68c2bacf9e5f64d54bbf0704109eaa8398027049cac770f0e63bf304757e968a4d27dc5b81f7ecb58ae295a74486070001d"></iframe>
+    </div>
+
+    <script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+            return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+            if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+                try {
+                    var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                    var firstSheetName = workbook.SheetNames[0];
+                    var worksheet = workbook.Sheets[firstSheetName];
+                    var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                    var filteredData = jsonData.filter(row => row.some(filledCell));
+                    var headerRowIndex = filteredData.findIndex((row, index) =>
+                        row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                    );
+                    if (headerRowIndex === -1 || headerRowIndex > 25) {
+                        headerRowIndex = 0;
+                    }
+                    var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex));
+                    csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                    return csv;
+                } catch (e) {
+                    console.error(e);
+                    return "";
+                }
+            }
+            return gk_fileData[filename] || "";
+        }
+    </script>
+    <script>
+        // Header scroll effect
+        window.addEventListener('scroll', function() {
+            const header = document.getElementById('header');
+            if (window.scrollY > 50) {
+                header.style.backgroundColor = 'rgba(10, 10, 10, 0.9)';
+                header.style.backdropFilter = 'blur(10px)';
+            } else {
+                header.style.backgroundColor = 'transparent';
+                header.style.backdropFilter = 'none';
+            }
+        });
+
+        // Mobile menu toggle
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+        mobileMenuButton.addEventListener('click', () => {
+            mobileMenu.classList.toggle('hidden');
+        });
+
+        // Lazy load iframes
+        const iframes = document.querySelectorAll('iframe[data-src]');
+        const observer = new IntersectionObserver((entries, observer) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.src = entry.target.dataset.src;
+                    observer.unobserve(entry.target);
+                }
+            });
+        });
+        iframes.forEach(iframe => observer.observe(iframe));
+
+        // Chat functionality
+        const chatButton = document.getElementById('chat-button');
+        const chatWindow = document.getElementById('chat-window');
+        const chatIframe = document.getElementById('chat-iframe');
+        let hasAutoOpened = false;
+
+        chatButton.addEventListener('click', toggleChatWindow);
+
+        function toggleChatWindow() {
+            if (chatWindow.style.display === 'block') {
+                chatWindow.style.display = 'none';
+            } else {
+                if (!chatIframe.src) {
+                    chatIframe.src = chatIframe.dataset.src;
+                }
+                chatWindow.style.display = 'block';
+            }
+        }
+
+        // Auto-open chat window when scrolled to 75% of the page
+        window.addEventListener('scroll', () => {
+            if (hasAutoOpened) return;
+            const scrollTop = window.scrollY || document.documentElement.scrollTop;
+            const windowHeight = window.innerHeight;
+            const documentHeight = document.documentElement.scrollHeight;
+            const scrollPercent = (scrollTop + windowHeight) / documentHeight;
+            if (scrollPercent >= 0.75) {
+                hasAutoOpened = true;
+                toggleChatWindow();
+            }
+        });
+
+        // Contact Modal functionality
+        const contactModal = document.getElementById('contact-modal');
+        const openContactModalButtons = document.querySelectorAll('.open-contact-modal');
+        const closeContactModalButton = document.getElementById('close-contact-modal');
+
+        openContactModalButtons.forEach(button => {
+            button.addEventListener('click', (event) => {
+                event.preventDefault();
+                contactModal.classList.remove('hidden');
+            });
+        });
+
+        closeContactModalButton.addEventListener('click', () => {
+            contactModal.classList.add('hidden');
+        });
+
+        window.addEventListener('click', (event) => {
+            if (event.target === contactModal) {
+                contactModal.classList.add('hidden');
+            }
+        });
+
+        // Netlify Form Submission Handling
+        const form = document.getElementById('contact-form');
+        const result = document.getElementById('form-result');
+
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(form);
+            result.innerHTML = 'Please wait...';
+            result.className = 'text-gray-300';
+            result.style.display = 'block';
+
+            fetch('/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams(formData).toString()
+            })
+            .then(response => {
+                if (response.ok) {
+                    form.reset();
+                    result.innerHTML = 'Thank you! Your message has been sent.';
+                    result.className = 'success';
+                } else {
+                    throw new Error('Form submission failed');
+                }
+            })
+            .catch(error => {
+                result.innerHTML = 'Sorry, something went wrong. Please try again later.';
+                result.className = 'error';
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,711 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AssistantX - AI Customer Support for South African Businesses</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0A0A0A;
+            color: #e5e7eb;
+        }
+        .gradient-text {
+            background: linear-gradient(90deg, #a78bfa, #67e8f9);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .cta-button {
+            background: #6BA58B;
+            transition: all 0.3s ease;
+        }
+        .cta-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(107, 165, 139, 0.2);
+        }
+        .feature-card, .pricing-card, .platform-card, .share-card {
+            background-color: #111111;
+            border: 1px solid #222;
+            transition: all 0.3s ease;
+        }
+        .feature-card:hover, .pricing-card:hover, .platform-card:hover, .share-card:hover {
+            transform: translateY(-5px);
+            border-color: #a78bfa;
+        }
+        .pricing-highlight {
+            border-color: #a78bfa;
+            box-shadow: 0 0 25px rgba(167, 139, 250, 0.2);
+        }
+        .hero-bg::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: radial-gradient(circle at 20% 30%, rgba(167, 139, 250, 0.08), transparent 40%),
+                             radial-gradient(circle at 80% 70%, rgba(103, 232, 249, 0.08), transparent 40%);
+            z-index: 0;
+        }
+        .chat-bg::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: radial-gradient(circle at 80% 20%, rgba(103, 232, 249, 0.06), transparent 50%),
+                             radial-gradient(circle at 20% 80%, rgba(167, 139, 250, 0.06), transparent 50%);
+            z-index: 0;
+        }
+        .chat-container, .video-container {
+            background: linear-gradient(145deg, #0f0f0f, #1a1a1a);
+            border: 1px solid #333;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5), 
+                        0 0 0 1px rgba(167, 139, 250, 0.1),
+                        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+        }
+        .chat-iframe, .video-iframe {
+            border-radius: 16px;
+            border: 1px solid #333;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in {
+            animation: fadeIn 0.8s ease-out forwards;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        .float-animation {
+            animation: float 6s ease-in-out infinite;
+        }
+        .glow-effect {
+            position: relative;
+            overflow: hidden;
+        }
+        .glow-effect::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(167, 139, 250, 0.1), transparent);
+            animation: shimmer 3s infinite;
+        }
+        @keyframes shimmer {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+        #chat-button {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background-color: #6BA58B;
+            color: white;
+            padding: 1rem;
+            border-radius: 9999px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 64px;
+            height: 64px;
+        }
+        #chat-button:hover {
+            transform: scale(1.1);
+        }
+        #chat-button::after {
+            content: '';
+            position: absolute;
+            bottom: 100%;
+            right: 0;
+            width: 0;
+            height: 0;
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent;
+            border-bottom: 10px solid #6BA58B;
+            margin-bottom: 5px;
+            display: none;
+        }
+        #chat-button:hover::after {
+            display: block;
+        }
+        #chat-window {
+            position: fixed;
+            bottom: 6rem;
+            right: 2rem;
+            width: 550px;
+            height: 500px;
+            background-color: #111111;
+            border: 1px solid #333;
+            border-radius: 16px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            overflow: hidden;
+            display: none;
+        }
+        #chat-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        .video-embed {
+            position: relative;
+            padding-bottom: 56.25%;
+            height: 0;
+            overflow: hidden;
+        }
+        .video-embed iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        .platform-logo, .share-logo {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            filter: invert(1);
+        }
+        .copy-button {
+            background: #6BA58B;
+            transition: all 0.3s ease;
+        }
+        .copy-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(107, 165, 139, 0.3);
+        }
+        .copied-message {
+            display: none;
+            color: #6BA58B;
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+        }
+    </style>
+</head>
+<body class="antialiased">
+    <header id="header" class="fixed top-0 left-0 right-0 z-50 transition-all duration-300 bg-black/90 backdrop-blur-sm">
+        <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <a href="https://assistantx.co.za" class="text-3xl font-bold gradient-text hover:opacity-80 transition-opacity">
+                <img src="assistantx-logo.png" alt="AssistantX Logo" class="h-8 mx-auto" />
+            </a>
+            <nav class="hidden md:flex items-center space-x-8">
+                <a href="#features" class="text-gray-300 hover:text-white transition-colors">Features</a>
+                <a href="#pricing" class="text-gray-300 hover:text-white transition-colors">Pricing</a>
+                <a href="#testimonials" class="text-gray-300 hover:text-white transition-colors">Testimonials</a>
+                <a href="#contact" class="text-gray-300 hover:text-white transition-colors">Contact</a>
+                <a href="#api-control" class="text-gray-300 hover:text-white transition-colors">API Key</a>
+            </nav>
+            <div class="hidden md:flex items-center space-x-6">
+                <a href="https://www.assistantx.chat/authentication/sign-in" class="text-gray-300 hover:text-white transition-colors font-semibold">Log In</a>
+                <a href="https://www.assistantx.chat/authentication/sign-up" class="cta-button text-white font-bold py-2 px-6 rounded-lg">Sign Up</a>
+            </div>
+            <button id="mobile-menu-button" class="md:hidden text-white">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+            </button>
+        </div>
+        <div id="mobile-menu" class="hidden md:hidden bg-black/90 backdrop-blur-sm">
+            <a href="#features" class="block py-3 px-6 text-lg text-white hover:bg-gray-800">Features</a>
+            <a href="#pricing" class="block py-3 px-6 text-lg text-white hover:bg-gray-800">Pricing</a>
+            <a href="#testimonials" class="block py-3 px-6 text-lg text-white hover:bg-gray-800">Testimonials</a>
+            <a href="#contact" class="block py-3 px-6 text-lg text-white hover:bg-gray-800">Contact</a>
+            <a href="#api-control" class="block py-3 px-6 text-lg text-white hover:bg-gray-800">API Key</a>
+            <a href="https://www.assistantx.chat/authentication/sign-in" class="block py-3 px-6 text-lg text-white hover:bg-gray-800">Log In</a>
+            <div class="p-4">
+                <a href="https://www.assistantx.chat/authentication/sign-up" class="block text-center cta-button text-white font-bold py-3 px-6 rounded-lg text-lg">Sign Up</a>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <section class="pt-48 pb-20 text-center relative overflow-hidden hero-bg">
+            <div class="container mx-auto px-6 relative z-10">
+                <h2 class="text-4xl md:text-6xl font-extrabold text-white mb-6 leading-tight fade-in">
+                    AI Customer Support in <span class="gradient-text">11 South African Languages</span>
+                </h2>
+                <p class="text-lg md:text-xl text-gray-400 max-w-3xl mx-auto mb-10 fade-in" style="animation-delay: 0.1s;">
+                    No code required. Engage visitors 24/7, capture leads instantly, and comply with POPIA regulations — all for just R299/month.
+                </p>
+                <div class="flex justify-center space-x-4">
+                    <a href="https://www.assistantx.chat/authentication/sign-up" class="cta-button text-white font-bold py-4 px-8 rounded-lg text-lg">Create Free Agent</a>
+                    <a href="#pricing" class="cta-button text-white font-bold py-4 px-8 rounded-lg text-lg">View Pricing</a>
+                </div>
+            </div>
+        </section>
+
+        <section id="features" class="py-20 bg-black">
+            <div class="container mx-auto px-6">
+                <h2 class="text-3xl md:text-4xl font-extrabold text-center mb-12 text-white fade-in">
+                    Why South African Businesses Choose AssistantX
+                </h2>
+                <p class="text-lg text-gray-400 max-w-2xl mx-auto mb-12 text-center">Built for local languages, industries, and compliance.</p>
+                <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <div class="feature-card p-8 rounded-2xl">
+                        <div class="text-4xl text-cyan-400 mb-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5v-4a2 2 0 012-2h10a2 2 0 012 2v4h-4M3 12h18" />
+                            </svg>
+                        </div>
+                        <h3 class="text-xl font-semibold mb-2 text-white">11 Official Languages</h3>
+                        <p class="text-gray-400">Serve customers in all official SA languages with automatic detection.</p>
+                    </div>
+                    <div class="feature-card p-8 rounded-2xl">
+                        <div class="text-4xl text-cyan-400 mb-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c0-2.76-2.24-5-5-5S2 8.24 2 11v5a2 2 0 002 2h6a2 2 0 002-2v-5zm0 0v-3a3 3 0 013-3h.01M22 11v5a2 2 0 01-2 2h-6a2 2 0 01-2-2v-5c0-2.76 2.24-5 5-5s5 2.24 5 5z" />
+                            </svg>
+                        </div>
+                        <h3 class="text-xl font-semibold mb-2 text-white">POPIA Compliant</h3>
+                        <p class="text-gray-400">South African data centers and full privacy compliance for peace of mind.</p>
+                    </div>
+                    <div class="feature-card p-8 rounded-2xl">
+                        <div class="text-4xl text-cyan-400 mb-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <h3 class="text-xl font-semibold mb-2 text-white">24/7 Instant Responses</h3>
+                        <p class="text-gray-400">Never miss a sales opportunity or support request, day or night.</p>
+                    </div>
+                    <div class="feature-card p-8 rounded-2xl">
+                        <div class="text-4xl text-cyan-400 mb-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2z" />
+                            </svg>
+                        </div>
+                        <h3 class="text-xl font-semibold mb-2 text-white">Local Industry Expertise</h3>
+                        <p class="text-gray-400">Optimized for retail, finance, healthcare, and other key local sectors.</p>
+                    </div>
+                    <div class="feature-card p-8 rounded-2xl">
+                        <div class="text-4xl text-cyan-400 mb-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <h3 class="text-xl font-semibold mb-2 text-white">Reduce Support Costs</h3>
+                        <p class="text-gray-400">Cut support expenses by up to 60% with efficient, automated agents.</p>
+                    </div>
+                    <div class="feature-card p-8 rounded-2xl">
+                        <div class="text-4xl text-cyan-400 mb-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                        </div>
+                        <h3 class="text-xl font-semibold mb-2 text-white">Easy Integration</h3>
+                        <p class="text-gray-400">Add your AI agent to any website in seconds, no developer needed.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="testimonials" class="py-20 bg-gray-900">
+            <div class="container mx-auto px-6">
+                <h2 class="text-3xl md:text-4xl font-extrabold text-center mb-12 text-white fade-in">
+                    Trusted by South African Businesses
+                </h2>
+                <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <div class="feature-card p-8 rounded-2xl">
+                        <p class="text-gray-400 mb-4">“Our Zulu-speaking customers get instant help 24/7. AssistantX has been a game-changer for our customer service.”</p>
+                        <p class="text-white font-semibold">Thandi Mkhize</p>
+                        <p class="text-gray-500 text-sm">Retail Company</p>
+                    </div>
+                    <div class="feature-card p-8 rounded-2xl">
+                        <p class="text-gray-400 mb-4">“Perfect for our diverse student base across the country. The multilingual support is a fantastic asset for us.”</p>
+                        <p class="text-white font-semibold">Suren Naidoo</p>
+                        <p class="text-gray-500 text-sm">Educational Institution</p>
+                    </div>
+                    <div class="feature-card p-8 rounded-2xl">
+                        <p class="text-gray-400 mb-4">“Increased our website's conversion rate instantly. The AI agent captures leads even when our team is offline.”</p>
+                        <p class="text-white font-semibold">Johan van der Merwe</p>
+                        <p class="text-gray-500 text-sm">Travel Business</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="pricing" class="py-20 bg-black">
+            <div class="container mx-auto px-6 text-center">
+                <h2 class="text-4xl font-bold mb-4 text-white fade-in">Simple, Local Pricing</h2>
+                <p class="text-lg text-gray-400 max-w-2xl mx-auto mb-12">Get started for free. Upgrade as you grow. All prices in Rand (ZAR).</p>
+                <div class="flex flex-wrap justify-center gap-8">
+                    <div class="pricing-card w-full max-w-sm p-8 rounded-2xl">
+                        <h3 class="text-2xl font-bold text-white mb-2">Starter</h3>
+                        <p class="text-gray-400 mb-6">Perfect for trying things out.</p>
+                        <p class="text-5xl font-extrabold text-white mb-6">R0<span class="text-lg font-medium text-gray-400">/mo</span></p>
+                        <ul class="text-left text-gray-300 mb-8">
+                            <li class="mb-2">• 1 Agent</li>
+                            <li class="mb-2">• 50 Chats/month</li>
+                            <li class="mb-2">• 2MB Storage</li>
+                            <li class="mb-2">• Embed on unlimited sites</li>
+                        </ul>
+                        <a href="https://www.assistantx.chat/authentication/sign-up" class="cta-button text-white font-bold py-3 px-6 rounded-lg block">Start Free</a>
+                    </div>
+                    <div class="pricing-card w-full max-w-sm p-8 rounded-2xl pricing-highlight relative">
+                        <div class="absolute -top-4 left-1/2 -translate-x-1/2 bg-purple-600 text-white px-4 py-1 rounded-full text-sm font-bold">Most Popular</div>
+                        <h3 class="text-2xl font-bold text-white mb-2">Basic</h3>
+                        <p class="text-gray-400 mb-6">For growing businesses.</p>
+                        <p class="text-5xl font-extrabold text-white mb-6">R299<span class="text-lg font-medium text-gray-400">/mo</span></p>
+                        <ul class="text-left text-gray-300 mb-8">
+                            <li class="mb-2">• Enhanced AI Engine</li>
+                            <li class="mb-2">• Remove Branding</li>
+                            <li class="mb-2">• 3 Agents</li>
+                            <li class="mb-2">• 1,500 Chats/month</li>
+                            <li class="mb-2">• 100MB Storage</li>
+                            <li class="mb-2">• Advanced Analytics</li>
+                            <li class="mb-2">• Priority Support</li>
+                        </ul>
+                        <a href="https://www.assistantx.chat/authentication/sign-up" class="cta-button text-white font-bold py-3 px-6 rounded-lg block">Choose Basic</a>
+                    </div>
+                    <div class="pricing-card w-full max-w-sm p-8 rounded-2xl">
+                        <h3 class="text-2xl font-bold text-white mb-2">Enterprise</h3>
+                        <p class="text-gray-400 mb-6">For large-scale deployments.</p>
+                        <p class="text-5xl font-extrabold text-white mb-6">Custom</p>
+                        <ul class="text-left text-gray-300 mb-8">
+                            <li class="mb-2">• Unlimited Agents & Chats</li>
+                            <li class="mb-2">• Custom Integrations</li>
+                            <li class="mb-2">• Dedicated Account Manager</li>
+                        </ul>
+                        <a href="#contact" class="open-contact-modal cta-button text-white font-bold py-3 px-6 rounded-lg block">Contact Sales</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="platforms" class="py-20 bg-gray-900">
+            <div class="container mx-auto px-6">
+                <h2 class="text-3xl md:text-4xl font-extrabold text-center mb-12 text-white fade-in">
+                    Seamless Integration with Your Platforms
+                </h2>
+                <p class="text-lg text-gray-400 max-w-2xl mx-auto mb-12 text-center">
+                    Embed your AI agent on any website or share it across social media platforms.
+                </p>
+                <div class="flex flex-wrap justify-center gap-8">
+                    <div class="platform-card p-6 rounded-2xl w-48 h-48 flex flex-col items-center justify-center">
+                        <div class="w-20 h-20 mb-4 bg-[#111111] rounded-lg flex items-center justify-center">
+                            <div class="w-16 h-16 bg-[#00749C] rounded p-3 flex items-center justify-center">
+                                <img src="https://cdn.jsdelivr.net/npm/simple-icons@v13/icons/wordpress.svg" alt="WordPress Logo" class="platform-logo">
+                            </div>
+                        </div>
+                        <p class="text-sm font-semibold text-white">WordPress</p>
+                    </div>
+                    <div class="platform-card p-6 rounded-2xl w-48 h-48 flex flex-col items-center justify-center">
+                        <div class="w-20 h-20 mb-4 bg-[#111111] rounded-lg flex items-center justify-center">
+                            <div class="w-16 h-16 bg-[#23bf1f] rounded p-3 flex items-center justify-center">
+                                <img src="https://cdn.jsdelivr.net/npm/simple-icons@v13/icons/shopify.svg" alt="Shopify Logo" class="platform-logo">
+                            </div>
+                        </div>
+                        <p class="text-sm font-semibold text-white">Shopify</p>
+                    </div>
+                    <div class="platform-card p-6 rounded-2xl w-48 h-48 flex flex-col items-center justify-center">
+                        <div class="w-20 h-20 mb-4 bg-[#111111] rounded-lg flex items-center justify-center">
+                            <div class="w-16 h-16 bg-[#4353FF] rounded p-3 flex items-center justify-center">
+                                <img src="https://cdn.jsdelivr.net/npm/simple-icons@v13/icons/webflow.svg" alt="Webflow Logo" class="platform-logo">
+                            </div>
+                        </div>
+                        <p class="text-sm font-semibold text-white">Webflow</p>
+                    </div>
+                    <div class="platform-card p-6 rounded-2xl w-48 h-48 flex flex-col items-center justify-center">
+                        <div class="w-20 h-20 mb-4 bg-[#111111] rounded-lg flex items-center justify-center">
+                            <div class="w-16 h-16 bg-[#007ACC] rounded p-3 flex items-center justify-center">
+                                <img src="https://cdn.jsdelivr.net/npm/simple-icons@v13/icons/codepen.svg" alt="Custom Code Logo" class="platform-logo">
+                            </div>
+                        </div>
+                        <p class="text-sm font-semibold text-white">Custom Code</p>
+                    </div>
+                    <div class="platform-card p-6 rounded-2xl w-48 h-48 flex flex-col items-center justify-center">
+                        <div class="w-20 h-20 mb-4 bg-[#111111] rounded-lg flex items-center justify-center">
+                            <div class="w-16 h-16 bg-[#222222] rounded p-3 flex items-center justify-center">
+                                <img src="https://cdn.jsdelivr.net/npm/simple-icons@v13/icons/squarespace.svg" alt="Squarespace Logo" class="platform-logo">
+                            </div>
+                        </div>
+                        <p class="text-sm font-semibold text-white">Squarespace</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="contact" class="py-20 bg-black">
+            <div class="container mx-auto px-6 text-center">
+                <h2 class="text-3xl md:text-4xl font-extrabold text-white mb-12 fade-in">Contact Sales</h2>
+                <p class="text-base md:text-lg text-gray-400 max-w-2xl mx-auto mb-12">
+                    For enterprise inquiries, please copy our email address below.
+                </p>
+                <div class="max-w-md mx-auto">
+                    <p class="text-white font-mono bg-gray-800 p-3 rounded mb-4">support@assistantx.chat</p>
+                    <button id="copy-email" class="copy-button text-white font-bold py-3 px-6 rounded-lg w-full">Copy</button>
+                    <p id="copied-message" class="copied-message">Copied!</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="py-20 relative overflow-hidden chat-bg">
+            <div class="container mx-auto px-6 relative z-10">
+                <div class="text-center mb-16">
+                    <h2 class="text-4xl md:text-5xl font-extrabold text-white mb-6 fade-in">
+                        See It In Action
+                    </h2>
+                    <p class="text-lg md:text-xl text-gray-400 max-w-2xl mx-auto mb-8 fade-in" style="animation-delay: 0.1s;">
+                        Experience how AssistantX supports your customers in all 11 South African languages.
+                    </p>
+                </div>
+                <div class="max-w-6xl mx-auto">
+                    <div class="video-container rounded-3xl p-8 glow-effect mb-8">
+                        <div class="video-embed">
+                            <iframe 
+                                class="video-iframe" 
+                                src="https://www.youtube.com/embed/8BxCUs-Cy8s" 
+                                frameborder="0" 
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                                allowfullscreen>
+                            </iframe>
+                        </div>
+                    </div>
+                    <div class="chat-container rounded-3xl p-8 glow-effect float-animation">
+                        <div class="flex items-center justify-between mb-6">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-4 h-4 bg-red-400 rounded-full"></div>
+                                <div class="w-4 h-4 bg-yellow-400 rounded-full"></div>
+                                <div class="w-4 h-4 bg-green-400 rounded-full"></div>
+                            </div>
+                            <div class="text-gray-400 text-sm font-mono">assistantx.chat/embed</div>
+                            <div class="flex items-center space-x-2">
+                                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                                </svg>
+                                <span class="text-sm text-gray-400">Powered by AssistantX</span>
+                            </div>
+                        </div>
+                        <div class="iframe-wrapper">
+                            <iframe 
+                                class="w-full chat-iframe" 
+                                style="height: 500px; min-height: 500px" 
+                                data-src="https://www.assistantx.chat/embed?openAiAssistantId=62fc48d9a255723de305a64f3b304b89%3A14d323abefaad996f0b7424635b3cd326a48e273240deffcadb0a4a73dcf323d&openAiAssistantKey=e20309c5e92d25e6c86e40eff1e54830%3A4efa09aa297e7865d92aede48f652e6f3deab9bbfd9f4fbc9c46977616903a9e3ff8e7d529e448419e9d80e7c137a92fcda655d248071dd95c9a3aa86f11e758feb91198bdedfde2571b124b684b26834c341e3e6b588ce70271017a722ee83d65d1808c1796730c9aa4d5c0d2d4fc530f292220c37ab25c9b789ddc53d6c9b925d9f9713b6a59c320c023d04ab5d9e4e10f969b8ef1ad7c913f1b2c68c2c6be4c322c721e55df8187bbd7356e4c8c14fd74ce6be3f166f38204921f6ab724becaf7b87088cd6dd2b6a2dad03358853c7988c92337740152906ffb4a8d91a6bf50a82e54432b27a2c6350ba7c9b39060cce686383d717a65659185f7e13c96524d20ae65037058e4793ebe90c92a06b8e0db87517646e3a7c82550abb2f4a8c52cefcfb014fe0bd38b7ae8d7734f562820802c221b005bdbfc994fec7d199f753e9f9a4b4c73c5d52a4dc0b6a28ce06ae2c35e65f1335fa59e8504160ee6bdf5420e8a7dcf98df3f279fc683ae4543838fe2807fedd13c5ab646d49d2eb08a3434a8db9458183e625638e33f70cbb776&name=c97a5f9cb3b1cad7d04aab464d7c9e1b%3A6b67f26688018c5abf86f507783ea9bcc37946c31256838f0bac1158b47dada2&img=6cbaf5f2279aea932a23ccb1c0571b2b%3A6cae24e0bee10b48bd097b9b77b48c404ea91e1488099032b6f1681012e4b3965aaaa055a301a389f7621e3c56ab74ab&role=040f9670d05182e9530f39418a6ba39c%3A4ca64ebdb0f57be913705cc03ca8f25c1945630d48df0a82c6f1eeced5befa0f6e19ae6aaa152b20b8e8e1e68796a68c2bacf9e5f64d54bbf0704109eaa8398027049cac770f0e63bf304757e968a4d27dc5b81f7ecb58ae295a74486070001d"
+                                allow="clipboard-write; clipboard-read">
+                            </iframe>
+                        </div>
+                    </div>
+                    <div class="text-center mt-8">
+                        <p class="text-gray-400 mb-6">Ready to embed this on your website?</p>
+                        <a href="https://www.assistantx.chat/authentication/sign-up" class="cta-button text-white font-bold py-3 px-8 rounded-lg text-lg hover:scale-105 transition-transform">Get Your Embed Code</a>
+                    </div>
+                    <div class="text-center mt-12">
+                        <h2 class="text-3xl md:text-4xl font-extrabold text-white mb-6 fade-in">More Than a Website</h2>
+                        <h3 class="text-xl font-semibold text-white mb-4">Your AI on Every Platform</h3>
+                        <p class="text-lg text-gray-400 max-w-2xl mx-auto mb-8">Your AssistantX agent isn't just for your website. Every agent comes with a unique, shareable link, turning your AI into a portable expert you can share anywhere.</p>
+                        <ul class="text-gray-300 max-w-md mx-auto text-left mb-8">
+                            <li class="mb-2">• Share in WhatsApp & Facebook groups</li>
+                            <li class="mb-2">• Add to your Instagram & X / Twitter bio</li>
+                            <li class="mb-2">• Post on your LinkedIn profile</li>
+                            <li class="mb-2">• Include in your email signature</li>
+                        </ul>
+                        <div class="flex flex-wrap justify-center gap-8">
+                            <a href="https://wa.me/?text=Check%20out%20AssistantX%20-%20AI%20Customer%20Support%20in%2011%20South%20African%20Languages!%20https://assistantx.co.za" target="_blank" class="share-card p-6 rounded-2xl w-48 h-48 flex flex-col items-center justify-center">
+                                <div class="w-20 h-20 mb-4 bg-[#111111] rounded-lg flex items-center justify-center">
+                                    <div class="w-16 h-16 bg-[#25D366] rounded p-3 flex items-center justify-center">
+                                        <img src="https://cdn.jsdelivr.net/npm/simple-icons@v13/icons/whatsapp.svg" alt="WhatsApp Logo" class="share-logo">
+                                    </div>
+                                </div>
+                                <p class="text-sm font-semibold text-white">WhatsApp</p>
+                            </a>
+                            <a href="https://www.facebook.com/sharer/sharer.php?u=https://assistantx.co.za" target="_blank" class="share-card p-6 rounded-2xl w-48 h-48 flex flex-col items-center justify-center">
+                                <div class="w-20 h-20 mb-4 bg-[#111111] rounded-lg flex items-center justify-center">
+                                    <div class="w-16 h-16 bg-[#1877F2] rounded p-3 flex items-center justify-center">
+                                        <img src="https://cdn.jsdelivr.net/npm/simple-icons@v13/icons/facebook.svg" alt="Facebook Logo" class="share-logo">
+                                    </div>
+                                </div>
+                                <p class="text-sm font-semibold text-white">Facebook</p>
+                            </a>
+                            <a href="https://www.instagram.com/?url=https://assistantx.co.za" target="_blank" class="share-card p-6 rounded-2xl w-48 h-48 flex flex-col items-center justify-center">
+                                <div class="w-20 h-20 mb-4 bg-[#111111] rounded-lg flex items-center justify-center">
+                                    <div class="w-16 h-16 bg-[#E4405F] rounded p-3 flex items-center justify-center">
+                                        <img src="https://cdn.jsdelivr.net/npm/simple-icons@v13/icons/instagram.svg" alt="Instagram Logo" class="share-logo">
+                                    </div>
+                                </div>
+                                <p class="text-sm font-semibold text-white">Instagram</p>
+                            </a>
+                            <a href="https://x.com/intent/tweet?text=Discover%20AssistantX%20-%20AI-powered%20customer%20support%20for%20South%20African%20businesses%20in%2011%20languages!&url=https://assistantx.co.za" target="_blank" class="share-card p-6 rounded-2xl w-48 h-48 flex flex-col items-center justify-center">
+                                <div class="w-20 h-20 mb-4 bg-[#111111] rounded-lg flex items-center justify-center">
+                                    <div class="w-16 h-16 bg-[#000000] rounded p-3 flex items-center justify-center">
+                                        <img src="https://cdn.jsdelivr.net/npm/simple-icons@v13/icons/x.svg" alt="X Logo" class="share-logo">
+                                    </div>
+                                </div>
+                                <p class="text-sm font-semibold text-white">X / Twitter</p>
+                            </a>
+                            <a href="https://www.linkedin.com/sharing/share-offsite/?url=https://assistantx.co.za" target="_blank" class="share-card p-6 rounded-2xl w-48 h-48 flex flex-col items-center justify-center">
+                                <div class="w-20 h-20 mb-4 bg-[#111111] rounded-lg flex items-center justify-center">
+                                    <div class="w-16 h-16 bg-[#0A66C2] rounded p-3 flex items-center justify-center">
+                                        <img src="https://cdn.jsdelivr.net/npm/simple-icons@v13/icons/linkedin.svg" alt="LinkedIn Logo" class="share-logo">
+                                    </div>
+                                </div>
+                                <p class="text-sm font-semibold text-white">LinkedIn</p>
+                            </a>
+                            <a href="mailto:?subject=Check%20out%20AssistantX&body=Discover%20AssistantX%20-%20AI-powered%20customer%20support%20in%2011%20South%20African%20languages!%20https://assistantx.co.za" target="_blank" class="share-card p-6 rounded-2xl w-48 h-48 flex flex-col items-center justify-center">
+                                <div class="w-20 h-20 mb-4 bg-[#111111] rounded-lg flex items-center justify-center">
+                                    <div class="w-16 h-16 bg-[#EA4335] rounded p-3 flex items-center justify-center">
+                                        <img src="https://cdn.jsdelivr.net/npm/simple-icons@v13/icons/gmail.svg" alt="Email Logo" class="share-logo">
+                                    </div>
+                                </div>
+                                <p class="text-sm font-semibold text-white">Email</p>
+                            </a>
+                        </div>
+                    </div>
+                    <div id="api-control" class="text-center mt-12">
+                        <h2 class="text-3xl md:text-4xl font-extrabold text-white mb-6 fade-in">Need Ultimate Control?</h2>
+                        <p class="text-lg text-gray-400 max-w-2xl mx-auto mb-8">For developers and enterprises requiring maximum flexibility, connect your own OpenAI API key for unlimited usage and complete control.</p>
+                        <a href="dev.html" class="cta-button text-white font-bold py-3 px-8 rounded-lg text-lg hover:scale-105 transition-transform">Connect Your Own API Key</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="py-8 bg-black border-t border-gray-900">
+        <div class="container mx-auto px-6 text-center">
+            <p class="text-gray-400 mb-6">Made with ❤️ in Cape Town, serving South Africa.</p>
+            <div class="flex justify-center space-x-6 mb-6">
+                <a href="https://www.youtube.com/@AssistantX" class="text-gray-400 hover:text-white">YouTube</a>
+                <a href="https://x.com/AssistantX" class="text-gray-400 hover:text-white">X (Twitter)</a>
+                <a href="https://www.instagram.com/assistantx" class="text-gray-400 hover:text-white">Instagram</a>
+                <a href="https://www.facebook.com/AssistantX" class="text-gray-400 hover:text-white">Facebook</a>
+                <a href="https://www.tiktok.com/@assistantx" class="text-gray-400 hover:text-white">TikTok</a>
+            </div>
+            <div class="flex justify-center space-x-6 mb-6">
+                <a href="/privacy" class="text-gray-400 hover:text-white">Privacy Policy</a>
+                <a href="/terms" class="text-gray-400 hover:text-white">Terms of Service</a>
+                <a href="#contact" class="text-gray-400 hover:text-white">Contact Us</a>
+            </div>
+            <p class="text-gray-500 text-sm">© 2025 AssistantX South Africa. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <div id="chat-button">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+    </div>
+
+    <div id="chat-window">
+        <iframe 
+            id="chat-iframe" 
+            data-src="https://www.assistantx.chat/embed?openAiAssistantId=62fc48d9a255723de305a64f3b304b89%3A14d323abefaad996f0b7424635b3cd326a48e273240deffcadb0a4a73dcf323d&openAiAssistantKey=e20309c5e92d25e6c86e40eff1e54830%3A4efa09aa297e7865d92aede48f652e6f3deab9bbfd9f4fbc9c46977616903a9e3ff8e7d529e448419e9d80e7c137a92fcda655d248071dd95c9a3aa86f11e758feb91198bdedfde2571b124b684b26834c341e3e6b588ce70271017a722ee83d65d1808c1796730c9aa4d5c0d2d4fc530f292220c37ab25c9b789ddc53d6c9b925d9f9713b6a59c320c023d04ab5d9e4e10f969b8ef1ad7c913f1b2c68c2c6be4c322c721e55df8187bbd7356e4c8c14fd74ce6be3f166f38204921f6ab724becaf7b87088cd6dd2b6a2dad03358853c7988c92337740152906ffb4a8d91a6bf50a82e54432b27a2c6350ba7c9b39060cce686383d717a65659185f7e13c96524d20ae65037058e4793ebe90c92a06b8e0db87517646e3a7c82550abb2f4a8c52cefcfb014fe0bd38b7ae8d7734f562820802c221b005bdbfc994fec7d199f753e9f9a4b4c73c5d52a4dc0b6a28ce06ae2c35e65f1335fa59e8504160ee6bdf5420e8a7dcf98df3f279fc683ae4543838fe2807fedd13c5ab646d49d2eb08a3434a8db9458183e625638e33f70cbb776&name=c97a5f9cb3b1cad7d04aab464d7c9e1b%3A6b67f26688018c5abf86f507783ea9bcc37946c31256838f0bac1158b47dada2&img=6cbaf5f2279aea932a23ccb1c0571b2b%3A6cae24e0bee10b48bd097b9b77b48c404ea91e1488099032b6f1681012e4b3965aaaa055a301a389f7621e3c56ab74ab&role=040f9670d05182e9530f39418a6ba39c%3A4ca64ebdb0f57be913705cc03ca8f25c1945630d48df0a82c6f1eeced5befa0f6e19ae6aaa152b20b8e8e1e68796a68c2bacf9e5f64d54bbf0704109eaa8398027049cac770f0e63bf304757e968a4d27dc5b81f7ecb58ae295a74486070001d"
+            allow="clipboard-write; clipboard-read">
+        </iframe>
+    </div>
+
+    <script>
+        // Mobile menu toggle
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+        mobileMenuButton.addEventListener('click', () => {
+            mobileMenu.classList.toggle('hidden');
+        });
+
+        // Copy email functionality
+        const copyButton = document.getElementById('copy-email');
+        const copiedMessage = document.getElementById('copied-message');
+        copyButton.addEventListener('click', () => {
+            navigator.clipboard.writeText('support@assistantx.chat').then(() => {
+                copiedMessage.style.display = 'block';
+                setTimeout(() => {
+                    copiedMessage.style.display = 'none';
+                }, 2000);
+            });
+        });
+
+        // Lazy load iframes
+        const iframes = document.querySelectorAll('iframe[data-src]');
+        const observer = new IntersectionObserver(entries => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.src = entry.target.dataset.src;
+                    observer.unobserve(entry.target);
+                }
+            });
+        });
+        iframes.forEach(iframe => observer.observe(iframe));
+
+        // Chat functionality
+        const chatButton = document.getElementById('chat-button');
+        const chatWindow = document.getElementById('chat-window');
+        const chatIframe = document.getElementById('chat-iframe');
+        let hasAutoOpened = false;
+
+        chatButton.addEventListener('click', toggleChatWindow);
+
+        function toggleChatWindow() {
+            if (chatWindow.style.display === 'block') {
+                chatWindow.style.display = 'none';
+            } else {
+                if (!chatIframe.src) {
+                    chatIframe.src = chatIframe.dataset.src;
+                }
+                chatWindow.style.display = 'block';
+            }
+        }
+
+        window.addEventListener('scroll', () => {
+            if (hasAutoOpened) return;
+            const scrollTop = window.scrollY || document.documentElement.scrollTop;
+            const windowHeight = window.innerHeight;
+            const documentHeight = document.documentElement.scrollHeight;
+            const scrollPercent = (scrollTop + windowHeight) / documentHeight;
+            if (scrollPercent >= 0.75) {
+                hasAutoOpened = true;
+                toggleChatWindow();
+            }
+        });
+    </script>
+</body>
+</html>

@@ -245,8 +245,10 @@
             position: fixed;
             bottom: 5rem;
             right: 2rem;
-            width: 500px;
-            height: 600px;
+            width: 400px;
+            height: 500px;
+            max-width: 90vw;
+            max-height: 80vh;
             background-color: #111111;
             border: 1px solid #333;
             border-radius: 16px;
@@ -254,6 +256,16 @@
             z-index: 1000;
             overflow: hidden;
             display: none;
+        }
+        @media (max-width: 640px) {
+            #chat-window {
+                width: 90vw;
+                height: 80vh;
+                min-width: 280px;
+                min-height: 400px;
+                bottom: 4rem;
+                right: 1rem;
+            }
         }
         #chat-iframe {
             width: 100%;
